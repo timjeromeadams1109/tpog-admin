@@ -109,19 +109,20 @@ export default function AdminPage() {
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("app_content").upsert(
-        [
-          {
-            scope: editScope,
-            key: editKey,
-            value: editValue,
-            updated_at: new Date().toISOString(),
-          },
-        ],
-        { onConflict: "scope,key" }
-      );
+      const res = await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scope: editScope,
+          key: editKey,
+          value: editValue,
+        }),
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to save");
+      }
 
       toast("✓ Saved successfully", "success");
       setShowModal(false);
@@ -129,7 +130,10 @@ export default function AdminPage() {
       await loadData();
     } catch (error) {
       console.error("Error saving:", error);
-      toast("Failed to save changes", "error");
+      toast(
+        error instanceof Error ? error.message : "Failed to save changes",
+        "error"
+      );
     } finally {
       setSaving(false);
     }
@@ -140,13 +144,19 @@ export default function AdminPage() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("app_content")
-        .delete()
-        .eq("scope", item.scope)
-        .eq("key", item.key);
+      const res = await fetch("/api/content", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scope: item.scope,
+          key: item.key,
+        }),
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete");
+      }
 
       toast("Deleted successfully", "success");
       await loadData();
